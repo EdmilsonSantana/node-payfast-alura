@@ -20,15 +20,23 @@ class PagamentoDao {
 		});
 	}
 
-	listar() {
+	buscar(id) {
+
+		let consulta = {}
+
+		if(id) {
+			consulta._id = ObjectID(id);
+		}
+		
 		return new Promise((resolve, reject) => {
-			this._collection.find({}).toArray((erros, resultado)=>{
-				if(!erros) {
-					resolve(resultado);
-				} else {
-					reject(erros);
-				}
-			});
+			this._collection.find(consulta)
+							.toArray((erros, resultado)=>{
+								if(!erros && resultado.length > 0) {
+									resolve(resultado);
+								} else {
+									reject(`Pagamento não encontrado: ${erros}`);
+								}
+							});
 		});
 	}
 

@@ -22,10 +22,14 @@ module.exports = function(){
   let PagamentoDao = app.persistencia.PagamentoDao;
   let ConnectionFactory = app.persistencia.ConnectionFactory;
 
-  app.dao = ConnectionFactory
+  let dao = ConnectionFactory
             .createConnection()
   					.then((connection) => new PagamentoDao(connection))
   					.catch(() => console.log('Não foi possível obter uma conexão com o Banco de dados.'));
+
+  app.persistencia = function() {
+    return dao;
+  };
 
   return app;
 }

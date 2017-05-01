@@ -6,17 +6,29 @@ const PAGAMENTO_CANCELADO  = "CANCELADO";
 
 module.exports = function(app){
 
-  app.get('/pagamentos', (req, res) => {
-    app.dao.then((dao) => {
-    	dao.listar()
-    		.then((pagamentos) => res.json(pagamentos));
+  app.get('/pagamentos/pagamento/:id', (req, res) => {
+
+    let id = req.params.id;
+
+    console.log(`Consultando pagamento: ${id}`);
+
+    app.persistencia().then((dao) => {
+        dao.buscar(id).then((resultado) => {
+          console.log(`Pagamento encontrado: ${JSON.stringify(resultado)}`);
+          res.json(resultado);
+        })
+        .catch((erros) => {
+          console.log(erros);
+          res.status(500).send(erros);
+        });
     });
+
   });
 
   app.delete('/pagamentos/pagamento/:id', (req, res) => {
     let id = req.params.id;
 
-    app.dao.then((dao) => {
+    app.persistencia().then((dao) => {
       dao.atualiza(id, PAGAMENTO_CANCELADO)
         .then(() => {
           console.log('Pagamento cancelado.');
@@ -34,7 +46,7 @@ module.exports = function(app){
 
   	let id = req.params.id;
 
-  	app.dao.then((dao) => {
+  	app.persistencia().then((dao) => {
   		dao.atualiza(id, PAGAMENTO_CONFIRMADO)
   			.then(() => {
           console.log('Pagamento confirmado.');
@@ -93,7 +105,7 @@ module.exports = function(app){
   	pagamento.status = PAGAMENTO_CRIADO;
   	pagamento.data = new Date();
 
-  	app.dao.then((dao) => {
+  	app.persistencia().then((dao) => {
   		dao.salva(pagamento)
     		.then((pagamentoCriado) => {
 
