@@ -1,5 +1,7 @@
 'use strict';
 
+var ObjectID = require('mongodb').ObjectID; 
+
 class PagamentoDao {
 	
 	constructor(connection) {
@@ -20,13 +22,28 @@ class PagamentoDao {
 
 	listar() {
 		return new Promise((resolve, reject) => {
-			this._collection.find({}).toArray((erros, documentos)=>{
-				if(!err) {
-					resolve(documentos);
+			this._collection.find({}).toArray((erros, resultado)=>{
+				if(!erros) {
+					resolve(resultado);
 				} else {
 					reject(erros);
 				}
 			});
+		});
+	}
+
+	atualiza(id, status) {
+		return new Promise((resolve, reject) => {
+			this._collection
+				.updateOne({"_id": ObjectID(id)}, {$set : {"status": status}}, 
+				 	    (erros,resultado)=> {
+				 	    	if(!erros) {
+				 	    		resolve(resultado);
+				 	    	} else {
+				 	    		reject(erros);
+				 	    	}
+						}
+				);
 		});
 	}
 }

@@ -16,16 +16,18 @@ module.exports = function(){
   consign()
    .include('controllers')
    .then('persistencia')
+   .then('servicos')
    .into(app);
 
   let PagamentoDao = app.persistencia.PagamentoDao;
   let ConnectionFactory = app.persistencia.ConnectionFactory;
-  
-  ConnectionFactory
-  	.createConnection()
-  	.then((connection) => new PagamentoDao(connection))
-  	.then((dao) => app.dao = dao)
-  	.catch(() => console.log('Não foi possível obter uma conexão com o Banco de dados.'));  
- 
+
+  app.dao = ConnectionFactory
+            .createConnection()
+  					.then((connection) => new PagamentoDao(connection))
+  					.catch(() => console.log('Não foi possível obter uma conexão com o Banco de dados.'));
+
   return app;
 }
+
+
