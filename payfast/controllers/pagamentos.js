@@ -12,16 +12,25 @@ module.exports = function(app){
 
     console.log(`Consultando pagamento: ${id}`);
 
-    app.persistencia().then((dao) => {
-        dao.buscar(id).then((resultado) => {
-          console.log(`Pagamento encontrado: ${JSON.stringify(resultado)}`);
-          res.json(resultado);
-        })
-        .catch((erros) => {
-          console.log(erros);
-          res.status(500).send(erros);
-        });
-    });
+    let clienteCache = new app.servicos.ClienteCache();
+    let chaveCache = `pagamento-${id}`;
+
+    clienteCache
+     .get(chaveCache)
+     .then((pagamento) => res.json(pagamento))
+     .catch(() => {
+         app.persistencia().then((dao) => {
+             dao.buscar(id).then((resultado) => {
+                     console.log(`Pagamento encontrado: ${JSON.stringify(resultado)}`);
+                     res.json(resultado);
+                 })
+                 .catch((erros) => {
+                     console.log(erros);
+                     res.status(500).send(erros);
+                 });
+         });
+     });
+    
 
   });
 
@@ -60,23 +69,6 @@ module.exports = function(app){
   	});
   });
 
-  function newResponse(pagamento) {
-    return  {
-                dados_do_pagamento : pagamento,
-                links : [
-                  {
-                    href : `http://localhost:3000/pagamentos/pagamento/${pagamento._id}`,
-                    rel: "confirmar",
-                    method: "PUT",
-                  }, 
-                  {
-                    href : `http://localhost:3000/pagamentos/pagamento/${pagamento._id}`,
-                    rel: "cancelar",
-                    method: "DELETE",
-                  }
-                ]
-            }
-  }
 
 
   app.post('/pagamentos/pagamento', (req, res) => {
@@ -100,8 +92,6 @@ module.exports = function(app){
 
   	let pagamento = req.body.pagamento;
     
-    let clienteCartoes = new app.servicos.ClienteCartoes();
-              
   	pagamento.status = PAGAMENTO_CRIADO;
   	pagamento.data = new Date();
 
@@ -111,28 +101,7 @@ module.exports = function(app){
 
     			console.log('Inserido com sucesso');
 
-          var response = newResponse(pagamentoCriado);
-
-          if(pagamentoCriado.forma_de_pagamento == 'cartao') {
-
-              let cartao = req.body.cartao;
-
-              clienteCartoes
-                .autoriza(cartao)
-                .then((cartaoAutorizado) => {
-                  response["cartao"] = cartaoAutorizado;
-                  res.location('/pagamentos/pagamento/' + pagamentoCriado._id)
-                    .status(201).json(response);
-                })
-                .catch((erros) => {
-                  console.log(erros);
-                  res.status(400).send(erros);
-                });
-           } else {
-
-              res.location('/pagamentos/pagamento/' + pagamentoCriado._id)
-                .status(201).send(response);
-           }
+          enviarPagamentoCriado(pagamentoCriado, req, res);
 
     		})
     		.catch((erros) => {
@@ -141,5 +110,57 @@ module.exports = function(app){
     			res.status(500).send(erros);
     		});
   	});
+
   });
+
+  function enviarPagamentoCriado(pagamento, req, res) {
+      var dadosRetorno = criarDadosRetorno(pagamento);
+     
+      let clienteCache = new app.servicos.ClienteCache();
+     
+      let chaveCache = `pagamento-${pagamento._id}`;
+
+      clienteCache.set(chaveCache, pagamento);
+
+      if (pagamento.forma_de_pagamento == 'cartao') {
+
+          let clienteCartoes = new app.servicos.ClienteCartoes();
+          let cartao = req.body.cartao;
+
+          clienteCartoes
+              .autoriza(cartao)
+              .then((cartaoAutorizado) => {
+                  dadosRetorno["cartao"] = cartaoAutorizado;
+                  res.location('/pagamentos/pagamento/' + pagamento._id)
+                      .status(201).json(dadosRetorno);
+              })
+              .catch((erros) => {
+                  console.log(erros);
+                  res.status(400).send(erros);
+              });
+      } else {
+
+          res.location('/pagamentos/pagamento/' + pagamento._id)
+              .status(201).send(dadosRetorno);
+      }
+  }
+
+  function criarDadosRetorno(pagamento) {
+    return  {
+                dados_do_pagamento : pagamento,
+                links : [
+                  {
+                    href : `http://localhost:3000/pagamentos/pagamento/${pagamento._id}`,
+                    rel: "confirmar",
+                    method: "PUT",
+                  }, 
+                  {
+                    href : `http://localhost:3000/pagamentos/pagamento/${pagamento._id}`,
+                    rel: "cancelar",
+                    method: "DELETE",
+                  }
+                ]
+            }
+  }
+
 }
