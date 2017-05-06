@@ -4,13 +4,15 @@ const PAGAMENTO_CRIADO = "CRIADO";
 const PAGAMENTO_CONFIRMADO = "CONFIRMADO";
 const PAGAMENTO_CANCELADO  = "CANCELADO";
 
+const logger = require('../servicos/logger')();
+
 module.exports = function(app){
 
   app.get('/pagamentos/pagamento/:id', (req, res) => {
 
     let id = req.params.id;
 
-    console.log(`Consultando pagamento: ${id}`);
+    logger.info(`Consultando pagamento: ${id}`);
 
     let clienteCache = new app.servicos.ClienteCache();
     let chaveCache = `pagamento-${id}`;
@@ -22,6 +24,7 @@ module.exports = function(app){
          app.persistencia().then((dao) => {
              dao.buscar(id).then((resultado) => {
                      console.log(`Pagamento encontrado: ${JSON.stringify(resultado)}`);
+                     logger.info(`Pagamento encontrado: ${JSON.stringify(resultado)}`)
                      res.json(resultado);
                  })
                  .catch((erros) => {
